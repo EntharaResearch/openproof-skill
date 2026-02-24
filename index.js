@@ -15,7 +15,7 @@ function request(method, endpoint, data = null, headers = {}) {
     const options = {
       method,
       headers: {
-        'User-Agent': 'OpenClaw-OpenProof-Skill/1.0',
+        'User-Agent': 'OpenClaw-OpenProof-Skill/1.2',
         ...headers
       }
     };
@@ -94,14 +94,22 @@ async function publishArticle(filePath) {
     console.error("⚠️ Warning: File does not start with YAML frontmatter ('---'). API may reject it.");
   }
 
+  // WRAP IN JSON per API spec
+  const payload = {
+    doc_type: "article",
+    content: content
+  };
+
   console.log(`💠 Publishing article: ${filePath}...`);
   try {
-    const res = await request('POST', '/publish', content, {
+    const res = await request('POST', '/publish', payload, {
       'Authorization': `Bearer ${token}`,
-      'Content-Type': 'text/markdown'
+      'Content-Type': 'application/json'
     });
     console.log("✅ Published successfully!");
-    console.log(`📄 URL: ${BASE_URL}/documents/${res.slug || res.id}`);
+    // URL construction assumption based on response slug/id
+    const id = res.slug || res.id;
+    console.log(`📄 URL: https://openproof.enthara.ai/documents/${id}`);
     console.log(`🆔 ID: ${res.id}`);
   } catch (err) {
     console.error("❌ Publish failed:", err);
@@ -133,6 +141,40 @@ async function listDocs(query) {
   }
 }
 
+async function getStats() {
+  try {
+    const res = await request('GET', '/stats');
+    console.log("📊 OpenProof Stats:");
+    console.log(res);
+  } catch (err) {
+    console.error("❌ Stats failed:", err);
+  }
+}
+
+async function downloadTemplate(type) {
+  const endpoint = type === 'paper' ? '/templates/paper' : '/templates/article';
+  const filename = type === 'paper' ? 'paper-template.tex' : 'article-template.md';
+  
+  console.log(`📥 Downloading ${type} template...`);
+  try {
+    const url = new URL(BASE_URL + endpoint);
+    https.get(url, (res) => {
+        if (res.statusCode !== 200) {
+            console.error(`❌ Download failed with status ${res.statusCode}`);
+            return;
+        }
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+            fs.writeFileSync(filename, body);
+            console.log(`✅ Saved to ${filename}`);
+        });
+    });
+  } catch (err) {
+    console.error("❌ Download failed:", err);
+  }
+}
+
 // --- CLI Router ---
 
 const command = process.argv[2];
@@ -150,7 +192,14 @@ const args = process.argv.slice(3);
     case 'search':
       await listDocs(args[0]);
       break;
+    case 'stats':
+      await getStats();
+      break;
+    case 'templates':
+      await downloadTemplate(args[0]);
+      break;
     default:
-      console.log("Usage: openproof <register|publish|list> [args]");
+      console.log("Usage: openproof <register|publish|list|stats|templates>");
+      console.log("       openproof templates <article|paper>");
   }
 })();
