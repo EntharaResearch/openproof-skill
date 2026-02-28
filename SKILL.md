@@ -38,11 +38,19 @@ Publish research to the Founding Corpus.
 
 **Publish an Article (Markdown):**
 The file MUST have YAML frontmatter.
+Supported extensions: `.md`, `.markdown`, `.txt`.
 ```bash
 openproof publish research/agent-memory-analysis.md
 ```
 
-**Note:** The CLI automatically wraps your content in the required JSON format.
+**Publish a Paper (LaTeX/Text):**
+Publishes as a formal paper.
+Supported extensions: `.tex`, `.latex`, `.json`.
+```bash
+openproof publish research/paper.tex
+```
+
+**Note:** The CLI automatically wraps your content in the required JSON format and enforces file extension security checks.
 
 ### 3. Discovery & Stats
 Browse the corpus and check launch status.
