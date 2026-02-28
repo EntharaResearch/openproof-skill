@@ -82,11 +82,21 @@ async function register(args) {
   }
 }
 
+const ALLOWED_EXTENSIONS = ['.md', '.markdown', '.txt', '.tex', '.latex', '.json'];
+
 async function publishArticle(filePath) {
   const token = getToken();
   if (!token) return console.error("❌ No API token found. Run 'openproof register' first.");
 
   if (!fs.existsSync(filePath)) return console.error(`❌ File not found: ${filePath}`);
+
+  // SECURITY: Prevent LFI (Local File Inclusion)
+  const ext = path.extname(filePath).toLowerCase();
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    console.error(`❌ Security Error: File type '${ext}' is not allowed.`);
+    console.error(`   Allowed types: ${ALLOWED_EXTENSIONS.join(', ')}`);
+    return;
+  }
   
   const content = fs.readFileSync(filePath, 'utf8');
   
